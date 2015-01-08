@@ -1,11 +1,10 @@
 ﻿var compiler = require('ember-template-compiler');
 var through = require('through2');
-var gutil = require('gulp-util');
 var path = require('path');
 
 const PLUGIN_NAME = 'gulp-ember-template-compiler';
 
-function templateCompiler() {
+function templateCompiler(options) {
   var stream = through.obj(function(file, enc, cb) {
     if (file.isNull()) {
       return cb();
@@ -21,7 +20,13 @@ function templateCompiler() {
       var fileName = n === 0 ? file.relative : file.relative.slice(0, -n);
       var compilerOutput = compiler.precompile(file.contents.toString(), false);
 
-      file.contents = new Buffer("Ember.TEMPLATES['" + fileName.replace(path.sep, '/') +"'] = Ember.Handlebars.template(" + compilerOutput + ");");
+      if (options && typeof options.pathHandler === 'function') {
+        fileName = options.pathHandler(fileName, path.sep);
+      } else {
+        fileName = fileName.replace(new RegExp('\\' + path.sep, 'g'), '/');
+      }
+
+      file.contents = new Buffer("Ember.TEMPLATES['" + fileName + "'] = Ember.Handlebars.template(" + compilerOutput + ");");
     }
 
     this.push(file);
